@@ -7,7 +7,14 @@ type Message {
   text: String!
 }
 
+type Mutation {
+  postMessage(user: String!, text: String!): Message
+}
+
+type Query {
+  messages: [Message!]!
+}
+
 type Subscription {
   messagePosted(user: String!): Message!
-  userJoined(user: String!): String!
 }
