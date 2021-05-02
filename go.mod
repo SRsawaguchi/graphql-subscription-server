@@ -4,5 +4,6 @@ go 1.16
 
 require (
 	github.com/99designs/gqlgen v0.13.0
+	github.com/segmentio/ksuid v1.0.3
 	github.com/vektah/gqlparser/v2 v2.1.0
 )
