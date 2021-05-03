@@ -6,6 +6,8 @@ GraphQLのSubscriptionを試してみる。
 - [https://outcrawl.com/go-graphql-realtime-chat](https://outcrawl.com/go-graphql-realtime-chat)を参考にする。
 - [gqlgen](https://gqlgen.com/getting-started/)を使う。
 
+どのように書けば良いのかという方法を確かめる目的なので、過度なモジュール化はしない。  
+基本は`gqlgen`によって初期化された構造にそのままコードを追加していく。  
 
 ## 準備
 
@@ -142,7 +144,7 @@ subscription($user: String!) {
 }
 ```
 
-valiables(例)
+variables(例)
 ```
 {
   "user": "tanaka"
@@ -160,10 +162,18 @@ mutation($user: String!, $text: String!) {
   }
 }
 ```
-valiables(例)
+variables(例)
 ```
 {
   "user": "tanaka",
   "text": "Hi there!!"
 }
 ```
+
+
+## RedisのPub/Subを使ったステートレス化
+これまでの実装方法では、メッセージの一覧はサーバのメモリ内に保存されている。  
+Subscriptionについてもサーバに依存しているため、オートスケーリングのような構成には使えない。  
+
+そこで、RedisのPub/Subを使い、サーバに依存しないステートレスな実装を追加。  
+※ブランチの`stateless`を参照。新しいファイルは追加せず、基本的に既存のメソッドの書き換えで実装。
