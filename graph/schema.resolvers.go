@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -22,19 +23,40 @@ func (r *mutationResolver) PostMessage(ctx context.Context, user string, text st
 		Text:      text,
 	}
 
-	// 投稿されたメッセージを保存し、subscribeしている全てのコネクションにブロードキャスト
-	r.mutex.Lock()
-	r.messages = append(r.messages, message)
-	for _, ch := range r.subscribers {
-		ch <- message
+	messageJson, _ := json.Marshal(message)
+	if err := r.redisClient.LPush(ctx, redisKeyMessages, string(messageJson)).Err(); err != nil {
+		log.Println(err.Error())
+		return nil, err
 	}
-	r.mutex.Unlock()
+
+	// messageをRedisにpublish
+	r.redisClient.Publish(ctx, redisPostMessagesSubscription, messageJson)
 
 	return message, nil
 }
 
 func (r *queryResolver) Messages(ctx context.Context) ([]*model.Message, error) {
-	return r.messages, nil
+	// Redisのmessagesからデータを取得
+	cmd := r.redisClient.LRange(ctx, redisKeyMessages, 0, -1)
+	if cmd.Err() != nil {
+		log.Println(cmd.Err())
+		return nil, cmd.Err()
+	}
+
+	result, err := cmd.Result()
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	messages := []*model.Message{}
+	for _, messageJson := range result {
+		m := &model.Message{}
+		_ = json.Unmarshal([]byte(messageJson), &m)
+		messages = append(messages, m)
+	}
+
+	return messages, nil
 }
 
 func (r *subscriptionResolver) MessagePosted(ctx context.Context, user string) (<-chan *model.Message, error) {
